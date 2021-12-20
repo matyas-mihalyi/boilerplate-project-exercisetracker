@@ -112,16 +112,15 @@ async function getLog (userId = '', queries = {}) {
         cond: dateFilter
       }},
       log : { $slice: ['$log', limit]},
-      log: { $map: {
-        input: '$log',
-        as: 'log',
-        in: {$dateToString : { date: '$$log.date'}}
-      }}
-     
     }},
-  ])
+  ]);
+
+  userData[0].log.map(log => {
+    log.date = log.date.toDateString();
+    console.log(log.date);
+    return log;
+  })
   
-  console.log(userData[0].log)
 
   return userData[0];
 };

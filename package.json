@@ -20,5 +20,8 @@
 	"keywords": [
 		"node",
 		"express"
-	]
+	],
+	"author": "Matyas Mihalyi",
+	"engines": { "node": "16.13.1"}
+
 }

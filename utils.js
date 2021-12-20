@@ -25,13 +25,13 @@ const User = mongoose.model('User', userSchema);
 
 
 //Creating a new user
-
 async function createNewUser (usernameInput = '') {
   const newUser = new User({username: usernameInput, count: 0, log: []});
   await newUser.save();
   return newUser;
 };
 
+// Get all users
 async function getAllUsers () {
   const allUsers = await User.find().select({'username': 1, '_id': 1});
   return allUsers;
@@ -79,11 +79,8 @@ async function getLog (userId = '', queries = {}) {
   const fromDate = isValidDate(new Date(queries.from)) ? new Date(queries.from) : false;
   const toDate = isValidDate(new Date(queries.to)) ? new Date(queries.to) : false;
   const limit = Number(queries.limit) || 500;
-  console.log(fromDate)
-  console.log(toDate)
-  console.log(limit)
 
-  
+  //set filter if date queries are given && in good format
   let dateFilter = {};
   if (fromDate) {
     dateFilter['$gte'] = ['$$log.date', fromDate];
@@ -92,10 +89,6 @@ async function getLog (userId = '', queries = {}) {
     dateFilter['$lte'] = ['$$log.date', toDate];
   }
 
-  console.log(dateFilter)
-  // console.log(filter.log)
-  
-  // const userData = await User.findById(userId);
   const userData = await User.aggregate([
     {
       '$match': {
@@ -115,17 +108,16 @@ async function getLog (userId = '', queries = {}) {
     }},
   ]);
 
+  //convert date to string
   userData[0].log.map(log => {
     log.date = log.date.toDateString();
-    console.log(log.date);
-    return log;
+    // return log;
   })
   
-
   return userData[0];
 };
 
-
+//get date based on date input
 function getDate(inputDate = '') {
   return isValidDate(inputDate) ?
   inputDate
@@ -133,11 +125,11 @@ function getDate(inputDate = '') {
   Date.now()
 };
 
+//validate input date format
 function isValidDate(inputDate) {
   const date = new Date(inputDate) 
   return date instanceof Date && !isNaN(date.valueOf());
 };
-
 
 module.exports={ 
   createNewUser,
@@ -146,14 +138,3 @@ module.exports={
   getLog,
   runAsyncWrapper 
 }
-
-
-
-/*
-
-6. GET /api/users/:_id/logs
-  parameters: from, to, limit
-  from & to: yyyy-mm-dd format dates
-  limit: integer -> max this many logs will be sent back
-
-*/

@@ -6,6 +6,7 @@ function runAsyncWrapper (callback) {
 };
 
 const mongoose = require('mongoose');
+const ObjectId = mongoose.Types.ObjectId;
 
 const { Schema } = mongoose;
 
@@ -75,40 +76,54 @@ async function addExerciseData (data, id) {
 
 //Get all exercise data of a user
 async function getLog (userId = '', queries = {}) {
-  const fromDate = new Date(queries.from).getTime() || false;
-  const toDate = new Date(queries.to).getTime() || false;
+  const fromDate = isValidDate(new Date(queries.from)) ? new Date(queries.from) : false;
+  const toDate = isValidDate(new Date(queries.to)) ? new Date(queries.to) : false;
   const limit = Number(queries.limit) || 500;
   console.log(fromDate)
   console.log(toDate)
   console.log(limit)
 
   
-  const userData = await User.findById(userId).select({'username':1, 'count':1, '_id':1, 'log':1} ).limit(limit);
-            
-  const filteredLog = userData.log
-    .filter((log,i) => {
-      if (isValidDate(fromDate) && isValidDate(toDate)) {
-        return new Date(fromDate) < log.date && log.date < new Date(toDate)
-      } 
-      else if (isValidDate(fromDate)) {
-        // console.log(new Date(fromDate) < log.date)
-        console.log(new Date(fromDate))
-        console.log(log.date)
-        return new Date(fromDate) < log.date
+  let dateFilter = {};
+  if (fromDate) {
+    dateFilter['$gte'] = ['$$log.date', fromDate];
+  }
+  if (toDate) {
+    dateFilter['$lte'] = ['$$log.date', toDate];
+  }
+
+  console.log(dateFilter)
+  // console.log(filter.log)
+  
+  // const userData = await User.findById(userId);
+  const userData = await User.aggregate([
+    {
+      '$match': {
+        '_id': new ObjectId(userId)
       }
-      else if (isValidDate(toDate)) {
-        return  log.date < new Date(toDate) 
-      } 
-      else if (i < limit ){
-        return
-      }
-    })
-    ;
+    },
+    {$project: {
+      username: true,
+      count: true,
+      _id:true,
+      log: { $filter: {
+        input: '$log',
+        as: 'log',
+        cond: dateFilter
+      }},
+      log : { $slice: ['$log', limit]},
+      log: { $map: {
+        input: '$log',
+        as: 'log',
+        in: {$dateToString : { date: '$$log.date'}}
+      }}
+     
+    }},
+  ])
+  
+  console.log(userData[0].log)
 
-  console.log(filteredLog)
-
-
-  return userData;
+  return userData[0];
 };
 
 
